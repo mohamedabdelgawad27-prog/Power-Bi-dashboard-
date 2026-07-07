@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Situation Financière Consolidée du Groupe</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.32.0/plotly.min.js"></script>
+<style>
+  :root{
+    --bg:#0a1628;
+    --panel:#0f1f38;
+    --panel-border:#1c3255;
+    --accent:#2ec4c6;
+    --accent2:#3b82f6;
+    --text:#e8edf5;
+    --text-dim:#7d93b5;
+    --red:#e05a5a;
+    --yellow:#e6b333;
+    --grey:#8a97a8;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Segoe UI', Arial, sans-serif;
+    min-height:100vh;
+  }
+  .header{
+    display:flex;
+    align-items:center;
+    gap:20px;
+    padding:18px 24px 6px 24px;
+  }
+  .logo{
+    width:54px;height:54px;border-radius:50%;
+    background:radial-gradient(circle at 35% 35%, #fff 0 30%, #cc2b2b 32% 60%, #0a1628 62%);
+    display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:14px;color:#fff;
+    border:2px solid #cc2b2b;
+    flex-shrink:0;
+  }
+  .header h1{
+    font-size:22px;
+    letter-spacing:0.5px;
+    font-weight:600;
+    margin:0;
+    color:#fff;
+  }
+  .reset-btn{
+    margin-left:auto;
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    color:var(--accent);
+    padding:8px 16px;
+    border-radius:6px;
+    cursor:pointer;
+    font-size:13px;
+    font-weight:600;
+  }
+  .reset-btn:hover{background:#16294a;}
+
+  .kpi-row{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:14px;
+    padding:10px 24px;
+  }
+  .kpi-card{
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    border-radius:8px;
+    padding:12px 18px;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  .kpi-label{
+    font-size:11px;
+    letter-spacing:0.8px;
+    color:var(--text-dim);
+    font-weight:600;
+    text-transform:uppercase;
+  }
+  .kpi-value{
+    font-size:26px;
+    font-weight:700;
+    color:#fff;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .kpi-value .icon{color:var(--accent);font-size:20px;}
+
+  .main-grid{
+    display:grid;
+    grid-template-columns: 260px 1fr 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap:14px;
+    padding:10px 24px 24px 24px;
+  }
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    border-radius:8px;
+    padding:14px 16px;
+    min-width:0;
+  }
+  .panel-title{
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:0.6px;
+    text-transform:uppercase;
+    color:#fff;
+    margin-bottom:10px;
+  }
+
+  .sidebar{ grid-column:1; grid-row:1 / span 2; display:flex; flex-direction:column; gap:14px; }
+  .date-filter label{
+    font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.6px; display:block; margin-bottom:4px;
+  }
+  .date-filter input{
+    width:100%;
+    background:#0a1628;
+    border:1px solid var(--panel-border);
+    color:var(--text);
+    padding:6px 8px;
+    border-radius:5px;
+    font-size:12px;
+    margin-bottom:8px;
+  }
+  .benef-list{
+    flex:1;
+    overflow-y:auto;
+    max-height:520px;
+  }
+  .benef-row{
+    display:grid;
+    grid-template-columns: 90px 1fr 60px;
+    align-items:center;
+    gap:6px;
+    font-size:11px;
+    padding:3px 0;
+    cursor:pointer;
+    border-radius:3px;
+  }
+  .benef-row:hover{background:#16294a;}
+  .benef-row.active{background:#1a3358;}
+  .benef-name{
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    color:var(--text-dim);
+  }
+  .benef-bar-track{background:#0a1628;border-radius:2px;height:14px;overflow:hidden;}
+  .benef-bar-fill{height:100%;background:var(--red);border-radius:2px;}
+  .benef-amount{text-align:right;color:#fff;font-weight:600;}
+
+  .stat-panel{grid-column:2; grid-row:1;}
+  .company-panel{grid-column:3; grid-row:1;}
+  .bank-panel{grid-column:4; grid-row:1;}
+  .table-panel{grid-column:2; grid-row:2; max-height:340px; overflow-y:auto;}
+  .trend-panel{grid-column:3 / span 2; grid-row:2;}
+
+  table{width:100%; border-collapse:collapse; font-size:11px;}
+  thead th{
+    position:sticky; top:0; background:var(--panel);
+    text-align:left; color:var(--text-dim); font-weight:600;
+    text-transform:uppercase; font-size:10px; letter-spacing:0.4px;
+    padding:6px 4px; border-bottom:1px solid var(--panel-border);
+  }
+  tbody td{ padding:5px 4px; border-bottom:1px solid #142645; color:var(--text); }
+  tbody tr:hover{background:#16294a;}
+
+  .legend-note{font-size:10px; color:var(--text-dim); margin-top:6px;}
+
+  @media (max-width: 1100px){
+    .main-grid{grid-template-columns:1fr;}
+    .sidebar,.stat-panel,.company-panel,.bank-panel,.table-panel,.trend-panel{grid-column:1; grid-row:auto;}
+    .kpi-row{grid-template-columns:repeat(2,1fr);}
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">MG</div>
+  <h1>SITUATION FINANCIÈRE CONSOLIDÉE DU GROUPE</h1>
+  <button class="reset-btn" id="resetBtn">Réinitialiser les filtres</button>
+</div>
+
+<div class="kpi-row">
+  <div class="kpi-card">
+    <div class="kpi-label">Total du Montant</div>
+    <div class="kpi-value"><span class="icon">◐</span><span id="kpiTotal">-</span></div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Nombre de Sociétés</div>
+    <div class="kpi-value" id="kpiCompanies">-</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Nombre de Bénéficiaires</div>
+    <div class="kpi-value" id="kpiBenef">-</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Nombre de Banques</div>
+    <div class="kpi-value" id="kpiBanks">-</div>
+  </div>
+</div>
+
+<div class="main-grid">
+  <div class="panel sidebar">
+    <div class="date-filter">
+      <div class="panel-title">Echéance</div>
+      <label>De</label>
+      <input type="date" id="dateFrom">
+      <label>À</label>
+      <input type="date" id="dateTo">
+    </div>
+    <div style="flex:1; display:flex; flex-direction:column; min-height:0;">
+      <div class="panel-title">Montant by Bénéficiaires</div>
+      <div class="benef-list" id="benefList"></div>
+    </div>
+  </div>
+
+  <div class="panel stat-panel">
+    <div class="panel-title">Montant Total par Statut de Paiement</div>
+    <div id="statutChart" style="width:100%;height:230px;"></div>
+  </div>
+
+  <div class="panel company-panel">
+    <div class="panel-title">Solde Total par Société</div>
+    <div id="companyChart" style="width:100%;height:230px;"></div>
+  </div>
+
+  <div class="panel bank-panel">
+    <div class="panel-title">Solde Total par Banque</div>
+    <div id="bankChart" style="width:100%;height:230px;"></div>
+  </div>
+
+  <div class="panel table-panel">
+    <div class="panel-title">Détails du Numéro de Facture</div>
+    <table>
+      <thead><tr><th>Bénéficiaire</th><th>Traite N°</th><th>Échéance</th><th>Montant</th></tr></thead>
+      <tbody id="detailsTable"></tbody>
+    </table>
+  </div>
+
+  <div class="panel trend-panel">
+    <div class="panel-title">Tendance du Montant Total</div>
+    <div id="trendChart" style="width:100%;height:230px;"></div>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
+// ============ State ============
+const filters = {
+  statut: null,
+  company: null,
+  banque: null,
+  beneficiaire: null,
+  dateFrom: null,
+  dateTo: null
+};
+
+const BANK_COLORS = {
+  'STB': '#2ec4c6',
+  'BIAT': '#8a97a8',
+  'BNA': '#e05a5a',
+  'UIB': '#e6b333',
+  'ZITOUNA': '#4a5f82'
+};
+
+const fmt = n => n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+const fmtInt = n => n.toLocaleString('en-US');
+
+// ============ Init date range from data ============
+function initDateRange(){
+  const dates = rawData.map(d => d.echeance).sort();
+  document.getElementById('dateFrom').value = dates[0];
+  document.getElementById('dateTo').value = dates[dates.length-1];
+  filters.dateFrom = dates[0];
+  filters.dateTo = dates[dates.length-1];
+}
+
+// ============ Filtering ============
+function getFiltered(){
+  return rawData.filter(d => {
+    if (filters.dateFrom && d.echeance < filters.dateFrom) return false;
+    if (filters.dateTo && d.echeance > filters.dateTo) return false;
+    if (filters.statut && d.paiement !== filters.statut) return false;
+    if (filters.company && d.company !== filters.company) return false;
+    if (filters.banque && d.banque !== filters.banque) return false;
+    if (filters.beneficiaire && d.beneficiaire !== filters.beneficiaire) return false;
+    return true;
+  });
+}
+
+function toggle(field, value){
+  filters[field] = (filters[field] === value) ? null : value;
+  renderAll();
+}
+
+function groupSum(rows, key){
+  const m = {};
+  rows.forEach(r => { m[r[key]] = (m[r[key]] || 0) + r.montant; });
+  return m;
+}
+
+// ============ Renderers ============
+function renderKPIs(rows){
+  const total = rows.reduce((s,r) => s + r.montant, 0);
+  document.getElementById('kpiTotal').textContent = fmt(total);
+  document.getElementById('kpiCompanies').textContent = fmtInt(new Set(rows.map(r=>r.company)).size);
+  document.getElementById('kpiBenef').textContent = fmtInt(new Set(rows.map(r=>r.beneficiaire)).size);
+  document.getElementById('kpiBanks').textContent = fmtInt(new Set(rows.map(r=>r.banque)).size);
+}
+
+function renderBenefList(rows){
+  const sums = groupSum(rows, 'beneficiaire');
+  const entries = Object.entries(sums).sort((a,b) => b[1]-a[1]);
+  const max = entries.length ? entries[0][1] : 1;
+  const container = document.getElementById('benefList');
+  container.innerHTML = '';
+  entries.forEach(([name, val]) => {
+    const row = document.createElement('div');
+    row.className = 'benef-row' + (filters.beneficiaire === name ? ' active' : '');
+    row.innerHTML = `
+      <div class="benef-name" title="${name}">${name}</div>
+      <div class="benef-bar-track"><div class="benef-bar-fill" style="width:${(val/max*100).toFixed(1)}%"></div></div>
+      <div class="benef-amount">${fmtInt(Math.round(val))}</div>
+    `;
+    row.onclick = () => toggle('beneficiaire', name);
+    container.appendChild(row);
+  });
+}
+
+function renderStatutChart(rows){
+  const sums = groupSum(rows, 'paiement');
+  const entries = Object.entries(sums).sort((a,b) => b[1]-a[1]);
+  const labels = entries.map(e => e[0]);
+  const values = entries.map(e => e[1]);
+  const colors = labels.map(l => filters.statut === l ? '#2ec4c6' : '#8a97a8');
+
+  Plotly.react('statutChart', [{
+    x: labels, y: values, type:'bar',
+    marker:{color: colors},
+    text: values.map(v => fmtInt(Math.round(v))),
+    textposition:'outside',
+    textfont:{color:'#e8edf5', size:10},
+    hovertemplate:'%{x}: %{y:,.2f}<extra></extra>'
+  }], layoutBase({ showgrid:true }), plotlyConfig()).then(gd => {
+    gd.removeAllListeners && gd.removeAllListeners('plotly_click');
+    gd.on('plotly_click', e => toggle('statut', e.points[0].x));
+  });
+}
+
+function renderCompanyChart(rows){
+  const sums = groupSum(rows, 'company');
+  const entries = Object.entries(sums).sort((a,b) => a[1]-b[1]);
+  const labels = entries.map(e => e[0]);
+  const values = entries.map(e => e[1]);
+  const colors = labels.map(l => filters.company === l ? '#2ec4c6' : '#3b82f6');
+
+  Plotly.react('companyChart', [{
+    x: values, y: labels, type:'bar', orientation:'h',
+    marker:{color: colors},
+    text: values.map(v => fmtInt(Math.round(v))),
+    textposition:'outside',
+    textfont:{color:'#e8edf5', size:10},
+    hovertemplate:'%{y}: %{x:,.2f}<extra></extra>'
+  }], layoutBase({ showgrid:true, margin:{l:110,r:40,t:10,b:30} }), plotlyConfig()).then(gd => {
+    gd.removeAllListeners && gd.removeAllListeners('plotly_click');
+    gd.on('plotly_click', e => toggle('company', e.points[0].y));
+  });
+}
+
+function renderBankChart(rows){
+  const sums = groupSum(rows, 'banque');
+  const entries = Object.entries(sums).sort((a,b) => b[1]-a[1]);
+  const labels = entries.map(e => e[0]);
+  const values = entries.map(e => e[1]);
+  const colors = labels.map(l => BANK_COLORS[l] || '#8a97a8');
+  const opacities = labels.map(l => (filters.banque && filters.banque !== l) ? 0.35 : 1);
+
+  Plotly.react('bankChart', [{
+    labels, values, type:'pie', hole:0.55,
+    marker:{colors: colors},
+    textinfo:'none',
+    hovertemplate:'%{label}: %{value:,.2f} (%{percent})<extra></extra>',
+    opacity: 1,
+    marker_line: {color: '#0f1f38', width: 2}
+  }], layoutBase({
+    showlegend:true,
+    legend:{font:{color:'#e8edf5', size:10}, orientation:'v', x:1, y:0.5},
+    margin:{l:10,r:10,t:10,b:10}
+  }), plotlyConfig()).then(gd => {
+    gd.removeAllListeners && gd.removeAllListeners('plotly_click');
+    gd.on('plotly_click', e => toggle('banque', e.points[0].label));
+  });
+}
+
+function renderTrendChart(rows){
+  const byMonth = {};
+  rows.forEach(r => {
+    const month = r.echeance.slice(0,7); // YYYY-MM
+    byMonth[month] = (byMonth[month] || 0) + r.montant;
+  });
+  const months = Object.keys(byMonth).sort();
+  const values = months.map(m => byMonth[m]);
+  const labels = months.map(m => {
+    const [y,mo] = m.split('-');
+    const d = new Date(y, mo-1, 1);
+    return d.toLocaleDateString('fr-FR', {month:'short', year:'2-digit'});
+  });
+
+  Plotly.react('trendChart', [{
+    x: labels, y: values, type:'scatter', mode:'lines+markers',
+    line:{color:'#2ec4c6', width:2, shape:'spline'},
+    marker:{color:'#2ec4c6', size:5},
+    fill:'tozeroy', fillcolor:'rgba(46,196,198,0.25)',
+    hovertemplate:'%{x}: %{y:,.2f}<extra></extra>'
+  }], layoutBase({ margin:{l:50,r:20,t:10,b:40} }), plotlyConfig());
+}
+
+function renderTable(rows){
+  const sorted = [...rows].sort((a,b) => a.echeance.localeCompare(b.echeance));
+  const tbody = document.getElementById('detailsTable');
+  tbody.innerHTML = sorted.map(r => `
+    <tr>
+      <td>${r.beneficiaire}</td>
+      <td>${r.traite}</td>
+      <td>${r.echeance}</td>
+      <td>${fmt(r.montant)}</td>
+    </tr>
+  `).join('');
+}
+
+function layoutBase(extra){
+  return Object.assign({
+    paper_bgcolor:'rgba(0,0,0,0)',
+    plot_bgcolor:'rgba(0,0,0,0)',
+    font:{color:'#e8edf5', size:10},
+    margin:{l:40,r:20,t:10,b:40},
+    xaxis:{gridcolor:'#1c3255', zeroline:false},
+    yaxis:{gridcolor:'#1c3255', zeroline:false},
+    showlegend:false
+  }, extra);
+}
+
+function plotlyConfig(){
+  return {displayModeBar:false, responsive:true};
+}
+
+function renderAll(){
+  const rows = getFiltered();
+  renderKPIs(rows);
+  renderBenefList(rows);
+  renderStatutChart(rows);
+  renderCompanyChart(rows);
+  renderBankChart(rows);
+  renderTrendChart(rows);
+  renderTable(rows);
+}
+
+// ============ Event bindings ============
+document.getElementById('dateFrom').addEventListener('change', e => {
+  filters.dateFrom = e.target.value;
+  renderAll();
+});
+document.getElementById('dateTo').addEventListener('change', e => {
+  filters.dateTo = e.target.value;
+  renderAll();
+});
+document.getElementById('resetBtn').addEventListener('click', () => {
+  filters.statut = null;
+  filters.company = null;
+  filters.banque = null;
+  filters.beneficiaire = null;
+  initDateRange();
+  renderAll();
+});
+
+// ============ Boot ============
+initDateRange();
+renderAll();
+const rawData = [{"echeance": "2026-02-10", "traite": "11023770058", "beneficiaire": "CAPRARI TUNISIE", "montant": 9434.51, "paiement": "IMPAYE", "banque": "BIAT", "company": "SOTRAMINE"}, {"echeance": "2026-03-31", "traite": "11283049021", "beneficiaire": "K.S.I", "montant": 3000.0, "paiement": "PAYE", "banque": "ZITOUNA", "company": "SOTRAMINE"}, {"echeance": "2026-04-30", "traite": "11283049118", "beneficiaire": "K.S.I", "montant": 3142.96, "paiement": "PAYE", "banque": "ZITOUNA", "company": "SOTRAMINE"}, {"echeance": "2026-05-15", "traite": "11283056684", "beneficiaire": "UTHINA", "montant": 6684.3, "paiement": "PAYE", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-05-20", "traite": "11615092922", "beneficiaire": "COMAR", "montant": 2266.72, "paiement": "PAYE", "banque": "BIAT", "company": "SOTRAMINE"}, {"echeance": "2026-05-30", "traite": "11283050185", "beneficiaire": "GAT ASSURANCES", "montant": 1597.38, "paiement": "PAYE", "banque": "ZITOUNA", "company": "SOTRAMINE"}, {"echeance": "2026-06-04", "traite": "11283055326", "beneficiaire": "COLMAN", "montant": 1747.36, "paiement": "PAYE", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-06-05", "traite": "123456758913", "beneficiaire": "AMOUS", "montant": 11366.41, "paiement": "PAYE", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-06-15", "traite": "12345678914", "beneficiaire": "UTHINA", "montant": 6684.3, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-06-16", "traite": "11234567891", "beneficiaire": "M.C.M DISTRIBUTION", "montant": 12980.73, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-06-20", "traite": "11615091370", "beneficiaire": "COMAR", "montant": 2266.72, "paiement": "A ECHOIR", "banque": "BIAT", "company": "SOTRAMINE"}, {"echeance": "2026-06-25", "traite": "11615096026", "beneficiaire": "CCEI", "montant": 4600.5, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-06-30", "traite": "11615098063", "beneficiaire": "C.B.K", "montant": 7175.0, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-06-30", "traite": "11655094474", "beneficiaire": "SOMELEC", "montant": 10464.2, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-06-30", "traite": "11615097675", "beneficiaire": "UTHINA", "montant": 8663.0, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-07-14", "traite": "11700291708", "beneficiaire": "EQUIP MODERNE", "montant": 3426.0, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-07-15", "traite": "11615098354", "beneficiaire": "CAPRARI TUNISIE", "montant": 9434.51, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-07-15", "traite": "11615096511", "beneficiaire": "COLMAN", "montant": 881.88, "paiement": "A ECHOIR", "banque": "BIAT", "company": "SOTRAMINE"}, {"echeance": "2026-07-15", "traite": "11700290544", "beneficiaire": "EDDOU MAN", "montant": 6482.0, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-07-15", "traite": "11700290835", "beneficiaire": "STUPREMAT", "montant": 3603.0, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-07-20", "traite": "11615091467", "beneficiaire": "COMAR", "montant": 2266.72, "paiement": "A ECHOIR", "banque": "BIAT", "company": "SOTRAMINE"}, {"echeance": "2026-07-20", "traite": "11615096317", "beneficiaire": "SCP", "montant": 3297.7, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-07-20", "traite": "11615096317", "beneficiaire": "SCP", "montant": 3297.7, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-07-25", "traite": "11615095929", "beneficiaire": "CCEI", "montant": 4600.5, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-07-30", "traite": "11615097966", "beneficiaire": "C.B.K", "montant": 7176.43, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-07-30", "traite": "11615094571", "beneficiaire": "SOMELEC", "montant": 10464.2, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-07-30", "traite": "11615097578", "beneficiaire": "UTHINA", "montant": 8663.0, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-07-31", "traite": "11615095638", "beneficiaire": "LES MOTEURS ELECTRIQUE", "montant": 9764.44, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-08-14", "traite": "11700291320", "beneficiaire": "SCOOPEC", "montant": 5257.06, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-08-14", "traite": "11700291611", "beneficiaire": "EQUIP MODERNE", "montant": 3426.0, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-08-15", "traite": "11700290447", "beneficiaire": "EDDOU MAN", "montant": 6482.0, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-08-15", "traite": "11615095735", "beneficiaire": "LES MOTEURS ELECTRIQUE", "montant": 5569.32, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-08-15", "traite": "11700290932", "beneficiaire": "STUPREMAT", "montant": 3603.0, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-08-15", "traite": "11283057169", "beneficiaire": "UTHINA", "montant": 6684.3, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-08-20", "traite": "11615090885", "beneficiaire": "COMAR", "montant": 2266.72, "paiement": "A ECHOIR", "banque": "BIAT", "company": "SOTRAMINE"}, {"echeance": "2026-08-25", "traite": "11615096123", "beneficiaire": "CCEI", "montant": 4600.5, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-08-30", "traite": "11615094668", "beneficiaire": "SOMELEC", "montant": 10464.0, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-08-30", "traite": "11615097481", "beneficiaire": "UTHINA", "montant": 8663.0, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-09-14", "traite": "11700291417", "beneficiaire": "EQUIP MODERNE", "montant": 3426.0, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-09-15", "traite": "11700290156", "beneficiaire": "EDDOU MAN", "montant": 6482.0, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-09-15", "traite": "11700291223", "beneficiaire": "SOTIC", "montant": 5760.82, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-09-15", "traite": "11700290738", "beneficiaire": "STUPREMAT", "montant": 3604.76, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-09-20", "traite": "11615090982", "beneficiaire": "COMAR", "montant": 2266.72, "paiement": "A ECHOIR", "banque": "BIAT", "company": "SOTRAMINE"}, {"echeance": "2026-09-21", "traite": "11700294812", "beneficiaire": "LIN", "montant": 5935.0, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-09-21", "traite": "11700294909", "beneficiaire": "LIN", "montant": 5935.0, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-09-25", "traite": "11615096220", "beneficiaire": "CCEI", "montant": 4600.5, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-09-30", "traite": "11615094765", "beneficiaire": "SOMELEC", "montant": 10464.0, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-09-30", "traite": "11615097384", "beneficiaire": "UTHINA", "montant": 8663.0, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-10-14", "traite": "1170029514", "beneficiaire": "EQUIP MODERNE", "montant": 3428.39, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-10-15", "traite": "11700290253", "beneficiaire": "EDDOU MAN", "montant": 6482.0, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-10-20", "traite": "11615091079", "beneficiaire": "COMAR", "montant": 2266.72, "paiement": "A ECHOIR", "banque": "BIAT", "company": "SOTRAMINE"}, {"echeance": "2026-10-21", "traite": "11700295006", "beneficiaire": "LIN", "montant": 5935.0, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-10-30", "traite": "11615094862", "beneficiaire": "SOMELEC", "montant": 10464.0, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-10-30", "traite": "11615097287", "beneficiaire": "UTHINA", "montant": 8663.0, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-11-15", "traite": "11700290350", "beneficiaire": "EDDOU MAN", "montant": 6482.67, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-11-20", "traite": "11615091176", "beneficiaire": "COMAR", "montant": 2266.72, "paiement": "A ECHOIR", "banque": "BIAT", "company": "SOTRAMINE"}, {"echeance": "2026-11-21", "traite": "11700295103", "beneficiaire": "LIN", "montant": 5935.0, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-11-30", "traite": "11615094959", "beneficiaire": "SOMELEC", "montant": 10464.0, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-11-30", "traite": "11615097772", "beneficiaire": "UTHINA", "montant": 8668.0, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2026-12-20", "traite": "11615091273", "beneficiaire": "COMAR", "montant": 2266.72, "paiement": "A ECHOIR", "banque": "BIAT", "company": "SOTRAMINE"}, {"echeance": "2026-12-21", "traite": "11700295491", "beneficiaire": "LIN", "montant": 6550.47, "paiement": "A ECHOIR", "banque": "STB", "company": "SOTRAMINE"}, {"echeance": "2027-01-20", "traite": "11283053677", "beneficiaire": "COMAR", "montant": 2266.72, "paiement": "A ECHOIR", "banque": "BIAT", "company": "SOTRAMINE"}, {"echeance": "2027-02-20", "traite": "11283053774", "beneficiaire": "COMAR", "montant": 2266.72, "paiement": "A ECHOIR", "banque": "BIAT", "company": "SOTRAMINE"}, {"echeance": "2026-05-20", "traite": "11283059691", "beneficiaire": "COMAR", "montant": 7430.26, "paiement": "A ECHOIR", "banque": "UIB", "company": "ATLAS MINERALS"}, {"echeance": "2026-06-20", "traite": "11283059788", "beneficiaire": "COMAR", "montant": 7430.26, "paiement": "A ECHOIR", "banque": "UIB", "company": "ATLAS MINERALS"}, {"echeance": "2026-07-20", "traite": "11283059885", "beneficiaire": "COMAR", "montant": 7430.26, "paiement": "A ECHOIR", "banque": "UIB", "company": "ATLAS MINERALS"}, {"echeance": "2026-08-20", "traite": "11283059982", "beneficiaire": "COMAR", "montant": 7430.26, "paiement": "A ECHOIR", "banque": "UIB", "company": "ATLAS MINERALS"}, {"echeance": "2026-09-20", "traite": "11283060079", "beneficiaire": "COMAR", "montant": 7430.26, "paiement": "A ECHOIR", "banque": "UIB", "company": "ATLAS MINERALS"}, {"echeance": "2026-10-20", "traite": "11283056102", "beneficiaire": "COMAR", "montant": 7430.26, "paiement": "A ECHOIR", "banque": "UIB", "company": "ATLAS MINERALS"}, {"echeance": "2026-11-20", "traite": "11283057266", "beneficiaire": "COMAR", "montant": 7430.26, "paiement": "A ECHOIR", "banque": "UIB", "company": "ATLAS MINERALS"}, {"echeance": "2026-12-20", "traite": "11283057363", "beneficiaire": "COMAR", "montant": 7430.26, "paiement": "A ECHOIR", "banque": "UIB", "company": "ATLAS MINERALS"}, {"echeance": "2027-01-20", "traite": "11283057460", "beneficiaire": "COMAR", "montant": 7430.26, "paiement": "A ECHOIR", "banque": "UIB", "company": "ATLAS MINERALS"}, {"echeance": "2027-02-20", "traite": "11283057557", "beneficiaire": "COMAR", "montant": 7430.26, "paiement": "A ECHOIR", "banque": "UIB", "company": "ATLAS MINERALS"}, {"echeance": "2027-03-20", "traite": "11283057654", "beneficiaire": "COMAR", "montant": 7430.26, "paiement": "A ECHOIR", "banque": "UIB", "company": "ATLAS MINERALS"}, {"echeance": "2027-04-20", "traite": "11615090109", "beneficiaire": "COMAR", "montant": 7430.26, "paiement": "A ECHOIR", "banque": "UIB", "company": "ATLAS MINERALS"}, {"echeance": "2026-06-07", "traite": "11615093116", "beneficiaire": "ETS BEN YOUSSEF", "montant": 9646.7, "paiement": "A ECHOIR", "banque": "BIAT", "company": "ATLAS MINERALS"}, {"echeance": "2026-07-07", "traite": "11615093213", "beneficiaire": "ETS BEN YOUSSEF", "montant": 9646.0, "paiement": "A ECHOIR", "banque": "BIAT", "company": "ATLAS MINERALS"}, {"echeance": "2026-08-07", "traite": "11615093310", "beneficiaire": "ETS BEN YOUSSEF", "montant": 9646.0, "paiement": "A ECHOIR", "banque": "BIAT", "company": "ATLAS MINERALS"}, {"echeance": "2026-06-15", "traite": "11615094086", "beneficiaire": "GMC", "montant": 16643.91, "paiement": "A ECHOIR", "banque": "UIB", "company": "ATLAS MINERALS"}, {"echeance": "2026-07-15", "traite": "11615093892", "beneficiaire": "GMC", "montant": 16642.0, "paiement": "A ECHOIR", "banque": "UIB", "company": "ATLAS MINERALS"}, {"echeance": "2026-08-15", "traite": "11615093989", "beneficiaire": "GMC", "montant": 16642.0, "paiement": "A ECHOIR", "banque": "UIB", "company": "ATLAS MINERALS"}, {"echeance": "2026-09-15", "traite": "11615094183", "beneficiaire": "GMC", "montant": 16642.0, "paiement": "A ECHOIR", "banque": "UIB", "company": "ATLAS MINERALS"}, {"echeance": "2026-08-15", "traite": "11615096414", "beneficiaire": "M.C.M DISTRIBUTION", "montant": 1995.35, "paiement": "A ECHOIR", "banque": "BIAT", "company": "ATLAS MINERALS"}, {"echeance": "2026-09-30", "traite": "11700291126", "beneficiaire": "SOTIC", "montant": 486.64, "paiement": "A ECHOIR", "banque": "BIAT", "company": "ATLAS MINERALS"}, {"echeance": "2026-08-30", "traite": "11700299662", "beneficiaire": "STUPREMAT", "montant": 1337.45, "paiement": "A ECHOIR", "banque": "BIAT", "company": "ATLAS MINERALS"}, {"echeance": "2026-07-30", "traite": "11700292581", "beneficiaire": "TAPARURA SHIPPING", "montant": 55276.0, "paiement": "A ECHOIR", "banque": "BIAT", "company": "ATLAS MINERALS"}, {"echeance": "2026-08-30", "traite": "11700292484", "beneficiaire": "TAPARURA SHIPPING", "montant": 55276.0, "paiement": "A ECHOIR", "banque": "BIAT", "company": "ATLAS MINERALS"}, {"echeance": "2026-09-30", "traite": "11700299177", "beneficiaire": "TAPARURA SHIPPING", "montant": 55276.0, "paiement": "A ECHOIR", "banque": "BIAT", "company": "ATLAS MINERALS"}, {"echeance": "2026-10-30", "traite": "11700299080", "beneficiaire": "TAPARURA SHIPPING", "montant": 55276.0, "paiement": "A ECHOIR", "banque": "BIAT", "company": "ATLAS MINERALS"}, {"echeance": "2026-11-30", "traite": "11700298983", "beneficiaire": "TAPARURA SHIPPING", "montant": 55276.36, "paiement": "A ECHOIR", "banque": "BIAT", "company": "ATLAS MINERALS"}, {"echeance": "2026-05-20", "traite": "11283052416", "beneficiaire": "GAT ASSURANCES", "montant": 1780.0, "paiement": "PAYE", "banque": "UIB", "company": "SEM"}, {"echeance": "2026-05-20", "traite": "11283054938", "beneficiaire": "COMAR", "montant": 4302.57, "paiement": "PAYE", "banque": "BNA", "company": "SEM"}, {"echeance": "2026-06-04", "traite": "11283055423", "beneficiaire": "COMAR", "montant": 53369.01, "paiement": "PAYE", "banque": "STB", "company": "SEM"}, {"echeance": "2026-06-15", "traite": "116115090303", "beneficiaire": "STUPREMAT", "montant": 3822.02, "paiement": "A ECHOIR", "banque": "BNA", "company": "SEM"}, {"echeance": "2026-06-20", "traite": "11283052513", "beneficiaire": "GAT ASSURANCES", "montant": 1780.0, "paiement": "A ECHOIR", "banque": "BNA", "company": "SEM"}, {"echeance": "2026-06-20", "traite": "11283055035", "beneficiaire": "COMAR", "montant": 4302.57, "paiement": "PAYE", "banque": "BNA", "company": "SEM"}, {"echeance": "2026-07-07", "traite": "11615093795", "beneficiaire": "ETS BEN YOUSSEF", "montant": 8910.0, "paiement": "A ECHOIR", "banque": "STB", "company": "SEM"}, {"echeance": "2026-07-20", "traite": "11283052610", "beneficiaire": "GAT ASSURANCES", "montant": 1780.0, "paiement": "A ECHOIR", "banque": "UIB", "company": "SEM"}, {"echeance": "2026-07-20", "traite": "11283055132", "beneficiaire": "COMAR", "montant": 4302.57, "paiement": "A ECHOIR", "banque": "BNA", "company": "SEM"}, {"echeance": "2026-08-20", "traite": "11283052707", "beneficiaire": "GAT ASSURANCES", "montant": 1780.0, "paiement": "A ECHOIR", "banque": "UIB", "company": "SEM"}, {"echeance": "2026-08-20", "traite": "11283057751", "beneficiaire": "COMAR", "montant": 4302.57, "paiement": "A ECHOIR", "banque": "BNA", "company": "SEM"}, {"echeance": "2026-09-20", "traite": "11283052804", "beneficiaire": "GAT ASSURANCES", "montant": 1780.0, "paiement": "A ECHOIR", "banque": "UIB", "company": "SEM"}, {"echeance": "2026-09-20", "traite": "11283057848", "beneficiaire": "COMAR", "montant": 4302.57, "paiement": "A ECHOIR", "banque": "BNA", "company": "SEM"}, {"echeance": "2026-10-20", "traite": "11283052901", "beneficiaire": "GAT ASSURANCES", "montant": 1780.0, "paiement": "A ECHOIR", "banque": "UIB", "company": "SEM"}, {"echeance": "2026-10-20", "traite": "11283057945", "beneficiaire": "COMAR", "montant": 4302.57, "paiement": "A ECHOIR", "banque": "BNA", "company": "SEM"}, {"echeance": "2026-11-20", "traite": "11283053095", "beneficiaire": "GAT ASSURANCES", "montant": 1780.0, "paiement": "A ECHOIR", "banque": "UIB", "company": "SEM"}, {"echeance": "2026-11-20", "traite": "11283058042", "beneficiaire": "COMAR", "montant": 4302.57, "paiement": "A ECHOIR", "banque": "BNA", "company": "SEM"}, {"echeance": "2026-12-20", "traite": "11283053192", "beneficiaire": "GAT ASSURANCES", "montant": 1762.14, "paiement": "A ECHOIR", "banque": "UIB", "company": "SEM"}, {"echeance": "2026-12-20", "traite": "11283058139", "beneficiaire": "COMAR", "montant": 4302.57, "paiement": "A ECHOIR", "banque": "BNA", "company": "SEM"}, {"echeance": "2027-01-20", "traite": "11283058236", "beneficiaire": "COMAR", "montant": 4302.57, "paiement": "A ECHOIR", "banque": "BNA", "company": "SEM"}, {"echeance": "2027-02-20", "traite": "11283058236", "beneficiaire": "COMAR", "montant": 4302.57, "paiement": "A ECHOIR", "banque": "BNA", "company": "SEM"}, {"echeance": "2026-07-15", "traite": "11615090497", "beneficiaire": "STUPREMAT", "montant": 3822.02, "paiement": "A ECHOIR", "banque": "BNA", "company": "SEM"}, {"echeance": "2026-08-15", "traite": "116155091564", "beneficiaire": "STUPREMAT", "montant": 3822.02, "paiement": "A ECHOIR", "banque": "BNA", "company": "SEM"}, {"echeance": "2026-09-15", "traite": "11700293454", "beneficiaire": "EQUIP MODERNE", "montant": 3815.82, "paiement": "A ECHOIR", "banque": "BNA", "company": "SEM"}, {"echeance": "2026-07-15", "traite": "11700293357", "beneficiaire": "EQUIP MODERNE", "montant": 3814.0, "paiement": "A ECHOIR", "banque": "BNA", "company": "SEM"}, {"echeance": "2026-08-15", "traite": "11700293260", "beneficiaire": "EQUIP MODERNE", "montant": 3814.0, "paiement": "A ECHOIR", "banque": "BNA", "company": "SEM"}, {"echeance": "2026-05-20", "traite": "11283054841", "beneficiaire": "COMAR", "montant": 5854.05, "paiement": "PAYE", "banque": "BNA", "company": "CMN"}, {"echeance": "2026-06-20", "traite": "11283053968", "beneficiaire": "COMAR", "montant": 5854.05, "paiement": "PAYE", "banque": "BNA", "company": "CMN"}, {"echeance": "2026-07-20", "traite": "11283054065", "beneficiaire": "COMAR", "montant": 5854.05, "paiement": "A ECHOIR", "banque": "BNA", "company": "CMN"}, {"echeance": "2026-08-20", "traite": "11283054162", "beneficiaire": "COMAR", "montant": 5854.05, "paiement": "A ECHOIR", "banque": "BNA", "company": "CMN"}, {"echeance": "2026-09-20", "traite": "11283054259", "beneficiaire": "COMAR", "montant": 5854.05, "paiement": "A ECHOIR", "banque": "BNA", "company": "CMN"}, {"echeance": "2026-10-20", "traite": "11283054356", "beneficiaire": "COMAR", "montant": 5854.05, "paiement": "A ECHOIR", "banque": "BNA", "company": "CMN"}, {"echeance": "2026-11-20", "traite": "11283054453", "beneficiaire": "COMAR", "montant": 5854.05, "paiement": "A ECHOIR", "banque": "BNA", "company": "CMN"}, {"echeance": "2026-12-20", "traite": "11283054550", "beneficiaire": "COMAR", "montant": 5854.05, "paiement": "A ECHOIR", "banque": "BNA", "company": "CMN"}, {"echeance": "2027-01-20", "traite": "11283054647", "beneficiaire": "COMAR", "montant": 5854.05, "paiement": "A ECHOIR", "banque": "BNA", "company": "CMN"}, {"echeance": "2027-02-20", "traite": "11283054744", "beneficiaire": "COMAR", "montant": 5854.05, "paiement": "A ECHOIR", "banque": "BNA", "company": "CMN"}, {"echeance": "2026-04-20", "traite": "11283050864", "beneficiaire": "GAT ASSURANCES", "montant": 2132.0, "paiement": "PAYE", "banque": "UIB", "company": "CMN"}, {"echeance": "2026-05-20", "traite": "11283050961", "beneficiaire": "GAT ASSURANCES", "montant": 2132.0, "paiement": "PAYE", "banque": "UIB", "company": "CMN"}, {"echeance": "2026-06-20", "traite": "11283051058", "beneficiaire": "GAT ASSURANCES", "montant": 2132.0, "paiement": "A ECHOIR", "banque": "UIB", "company": "CMN"}, {"echeance": "2026-07-20", "traite": "11283051155", "beneficiaire": "GAT ASSURANCES", "montant": 2132.0, "paiement": "A ECHOIR", "banque": "UIB", "company": "CMN"}, {"echeance": "2026-08-20", "traite": "11283051349", "beneficiaire": "GAT ASSURANCES", "montant": 2132.0, "paiement": "A ECHOIR", "banque": "UIB", "company": "CMN"}, {"echeance": "2026-09-20", "traite": "11283051446", "beneficiaire": "GAT ASSURANCES", "montant": 2132.0, "paiement": "A ECHOIR", "banque": "UIB", "company": "CMN"}, {"echeance": "2026-10-20", "traite": "11283051543", "beneficiaire": "GAT ASSURANCES", "montant": 2132.0, "paiement": "A ECHOIR", "banque": "UIB", "company": "CMN"}, {"echeance": "2026-11-20", "traite": "11283051640", "beneficiaire": "GAT ASSURANCES", "montant": 2133.54, "paiement": "A ECHOIR", "banque": "UIB", "company": "CMN"}, {"echeance": "2026-06-15", "traite": "11615099033", "beneficiaire": "STUPREMAT", "montant": 4452.09, "paiement": "PAYE", "banque": "BNA", "company": "CMN"}, {"echeance": "2026-07-15", "traite": "11615091855", "beneficiaire": "STUPREMAT", "montant": 4452.09, "paiement": "A ECHOIR", "banque": "BNA", "company": "CMN"}, {"echeance": "2026-08-15", "traite": "11615091661", "beneficiaire": "STUPREMAT", "montant": 4452.09, "paiement": "A ECHOIR", "banque": "BNA", "company": "CMN"}, {"echeance": "2026-09-15", "traite": "116155091758", "beneficiaire": "STUPREMAT", "montant": 4452.09, "paiement": "A ECHOIR", "banque": "BNA", "company": "CMN"}, {"echeance": "2026-02-28", "traite": "11283048051", "beneficiaire": "TOTAL ENERGIES", "montant": 54032.87, "paiement": "A ECHOIR", "banque": "UIB", "company": "CMN"}, {"echeance": "2026-10-15", "traite": "11700299565", "beneficiaire": "STUPREMAT", "montant": 6385.9, "paiement": "A ECHOIR", "banque": "BNA", "company": "CMN"}, {"echeance": "2026-11-15", "traite": "11700299468", "beneficiaire": "STUPREMAT", "montant": 6385.9, "paiement": "A ECHOIR", "banque": "BNA", "company": "CMN"}, {"echeance": "2026-12-15", "traite": "11700290641", "beneficiaire": "STUPREMAT", "montant": 6385.9, "paiement": "A ECHOIR", "banque": "BNA", "company": "CMN"}, {"echeance": "2026-08-10", "traite": "11700298886", "beneficiaire": "TOTAL ENERGIES", "montant": 53976.23, "paiement": "A ECHOIR", "banque": "BNA", "company": "CMN"}, {"echeance": "2026-07-14", "traite": "11700293551", "beneficiaire": "EQUIP MODERNE", "montant": 5227.95, "paiement": "A ECHOIR", "banque": "BNA", "company": "CMN"}, {"echeance": "2026-08-14", "traite": "11700293648", "beneficiaire": "EQUIP MODERNE", "montant": 5227.95, "paiement": "A ECHOIR", "banque": "BNA", "company": "CMN"}, {"echeance": "2026-05-20", "traite": "11615092049", "beneficiaire": "COMAR", "montant": 1284.21, "paiement": "PAYE", "banque": "BIAT", "company": "SDM"}, {"echeance": "2026-06-20", "traite": "11615092146", "beneficiaire": "COMAR", "montant": 1284.21, "paiement": "A ECHOIR", "banque": "BIAT", "company": "SDM"}, {"echeance": "2026-06-30", "traite": "11283051737", "beneficiaire": "GAT ASSURANCES", "montant": 1780.0, "paiement": "A ECHOIR", "banque": "BIAT", "company": "SDM"}, {"echeance": "2026-07-20", "traite": "11615092343", "beneficiaire": "COMAR", "montant": 1284.21, "paiement": "A ECHOIR", "banque": "BIAT", "company": "SDM"}, {"echeance": "2026-07-30", "traite": "11283051834", "beneficiaire": "GAT ASSURANCES", "montant": 1780.0, "paiement": "A ECHOIR", "banque": "BIAT", "company": "SDM"}, {"echeance": "2026-08-20", "traite": "11615092340", "beneficiaire": "COMAR", "montant": 1284.21, "paiement": "A ECHOIR", "banque": "BIAT", "company": "SDM"}, {"echeance": "2026-08-30", "traite": "11283051931", "beneficiaire": "GAT ASSURANCES", "montant": 1780.0, "paiement": "A ECHOIR", "banque": "BIAT", "company": "SDM"}, {"echeance": "2026-09-20", "traite": "11615092437", "beneficiaire": "COMAR", "montant": 1284.21, "paiement": "A ECHOIR", "banque": "BIAT", "company": "SDM"}, {"echeance": "2026-09-30", "traite": "11283052028", "beneficiaire": "GAT ASSURANCES", "montant": 1808.24, "paiement": "A ECHOIR", "banque": "BIAT", "company": "SDM"}, {"echeance": "2026-10-20", "traite": "11615092534", "beneficiaire": "COMAR", "montant": 1284.21, "paiement": "A ECHOIR", "banque": "BIAT", "company": "SDM"}, {"echeance": "2026-11-20", "traite": "11615092631", "beneficiaire": "COMAR", "montant": 1284.21, "paiement": "A ECHOIR", "banque": "BIAT", "company": "SDM"}, {"echeance": "2026-12-20", "traite": "11615092728", "beneficiaire": "COMAR", "montant": 1284.21, "paiement": "A ECHOIR", "banque": "BIAT", "company": "SDM"}, {"echeance": "2027-01-20", "traite": "11615092825", "beneficiaire": "COMAR", "montant": 1284.21, "paiement": "A ECHOIR", "banque": "BIAT", "company": "SDM"}, {"echeance": "2027-02-20", "traite": "11283053871", "beneficiaire": "COMAR", "montant": 1284.21, "paiement": "A ECHOIR", "banque": "BIAT", "company": "SDM"}, {"echeance": "2026-05-20", "traite": "11283059497", "beneficiaire": "COMAR", "montant": 7252.72, "paiement": "PAYE", "banque": "BNA", "company": "CPN"}, {"echeance": "2026-06-20", "traite": "11283059594", "beneficiaire": "COMAR", "montant": 7252.72, "paiement": "PAYE", "banque": "BNA", "company": "CPN"}, {"echeance": "2026-07-20", "traite": "11283059303", "beneficiaire": "COMAR", "montant": 7252.72, "paiement": "A ECHOIR", "banque": "BNA", "company": "CPN"}, {"echeance": "2026-09-20", "traite": "11283059109", "beneficiaire": "COMAR", "montant": 7252.72, "paiement": "A ECHOIR", "banque": "BNA", "company": "CPN"}, {"echeance": "2026-10-20", "traite": "11283059012", "beneficiaire": "COMAR", "montant": 7252.72, "paiement": "A ECHOIR", "banque": "BNA", "company": "CPN"}, {"echeance": "2026-11-20", "traite": "11283058915", "beneficiaire": "COMAR", "montant": 7252.72, "paiement": "A ECHOIR", "banque": "BNA", "company": "CPN"}, {"echeance": "2026-12-20", "traite": "11283058818", "beneficiaire": "COMAR", "montant": 7252.72, "paiement": "A ECHOIR", "banque": "BNA", "company": "CPN"}, {"echeance": "2026-01-20", "traite": "11283058721", "beneficiaire": "COMAR", "montant": 7252.72, "paiement": "A ECHOIR", "banque": "BNA", "company": "CPN"}, {"echeance": "2026-02-20", "traite": "11283058624", "beneficiaire": "COMAR", "montant": 7252.72, "paiement": "A ECHOIR", "banque": "BNA", "company": "CPN"}, {"echeance": "2027-03-20", "traite": "11283058527", "beneficiaire": "COMAR", "montant": 7252.72, "paiement": "A ECHOIR", "banque": "BNA", "company": "CPN"}, {"echeance": "2027-04-20", "traite": "11283058430", "beneficiaire": "COMAR", "montant": 7252.72, "paiement": "A ECHOIR", "banque": "BNA", "company": "CPN"}, {"echeance": "2026-06-15", "traite": "11615099227", "beneficiaire": "STUPREMAT", "montant": 5300.06, "paiement": "PAYE", "banque": "BNA", "company": "CPN"}, {"echeance": "2026-07-15", "traite": "11615099324", "beneficiaire": "STUPREMAT", "montant": 5300.06, "paiement": "A ECHOIR", "banque": "BNA", "company": "CPN"}, {"echeance": "2026-08-15", "traite": "11615099421", "beneficiaire": "STUPREMAT", "montant": 5300.06, "paiement": "A ECHOIR", "banque": "BNA", "company": "CPN"}, {"echeance": "2026-09-15", "traite": "11615099518", "beneficiaire": "STUPREMAT", "montant": 5300.06, "paiement": "A ECHOIR", "banque": "BNA", "company": "CPN"}, {"echeance": "2026-10-15", "traite": "11615099615", "beneficiaire": "STUPREMAT", "montant": 5300.06, "paiement": "A ECHOIR", "banque": "BNA", "company": "CPN"}, {"echeance": "2026-11-15", "traite": "11615099712", "beneficiaire": "STUPREMAT", "montant": 5300.06, "paiement": "A ECHOIR", "banque": "BNA", "company": "CPN"}, {"echeance": "2026-12-15", "traite": "11700299759", "beneficiaire": "STUPREMAT", "montant": 3312.08, "paiement": "A ECHOIR", "banque": "BNA", "company": "CPN"}, {"echeance": "2026-07-20", "traite": "11700293745", "beneficiaire": "STUPREMAT", "montant": 5227.95, "paiement": "A ECHOIR", "banque": "BNA", "company": "CPN"}, {"echeance": "2026-08-20", "traite": "11700293163", "beneficiaire": "EQUIP MODERNE", "montant": 5227.95, "paiement": "A ECHOIR", "banque": "BNA", "company": "CPN"}, {"echeance": "2026-06-15", "traite": "11615098160", "beneficiaire": "C.B.K", "montant": 5565.98, "paiement": "A ECHOIR", "banque": "BIAT", "company": "TMS CONTRACTORS"}, {"echeance": "2026-06-30", "traite": "11700300050", "beneficiaire": "STUPREMAT", "montant": 2364.0, "paiement": "A ECHOIR", "banque": "BIAT", "company": "TMS CONTRACTORS"}, {"echeance": "2026-07-30", "traite": "11700299953", "beneficiaire": "STUPREMAT", "montant": 2364.0, "paiement": "A ECHOIR", "banque": "BIAT", "company": "TMS CONTRACTORS"}, {"echeance": "2026-08-30", "traite": "11700299856", "beneficiaire": "STUPREMAT", "montant": 2363.89, "paiement": "A ECHOIR", "banque": "BIAT", "company": "TMS CONTRACTORS"}, {"echeance": "2026-06-30", "traite": "11283050379", "beneficiaire": "GAT ASSURANCES", "montant": 717.0, "paiement": "A ECHOIR", "banque": "ZITOUNA", "company": "NORDTRAC"}, {"echeance": "2026-07-30", "traite": "11283050476", "beneficiaire": "GAT ASSURANCES", "montant": 717.0, "paiement": "A ECHOIR", "banque": "ZITOUNA", "company": "NORDTRAC"}, {"echeance": "2026-08-30", "traite": "11283050573", "beneficiaire": "GAT ASSURANCES", "montant": 717.0, "paiement": "A ECHOIR", "banque": "ZITOUNA", "company": "NORDTRAC"}, {"echeance": "2026-09-30", "traite": "11283050767", "beneficiaire": "GAT ASSURANCES", "montant": 720.2, "paiement": "A ECHOIR", "banque": "ZITOUNA", "company": "NORDTRAC"}, {"echeance": "2026-03-31", "traite": "11283050088", "beneficiaire": "GAT ASSURANCES", "montant": 2153.2, "paiement": "A ECHOIR", "banque": "ZITOUNA", "company": "NORDTRAC"}];
